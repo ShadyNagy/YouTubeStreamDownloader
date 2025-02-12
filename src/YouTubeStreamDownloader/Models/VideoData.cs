@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace YouTubeStreamDownloader.Models;
+﻿namespace YouTubeStreamDownloader.Models;
 
 public class VideoData
 {

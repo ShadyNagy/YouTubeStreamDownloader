@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using YoutubeExplode;
+﻿using YoutubeExplode;
 using YouTubeStreamDownloader.Interfaces;
 using YouTubeStreamDownloader.Services;
 

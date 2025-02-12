@@ -17,4 +17,7 @@ public interface IYouTubeMetadataService
   Task<string> DownloadVideoAsFileAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default);
 
 	Task<Stream> DownloadVideoAsStreamAsync(string videoUrl, CancellationToken cancellationToken = default);
+
+  Task<string> GetSubtitleAsync(string videoUrl, string fileName, string outputPath, string? languageCode = null, CancellationToken cancellationToken = default);
+  Task<string> GetSubtitleAsync(string videoUrl, string? languageCode = null, CancellationToken cancellationToken = default);
 }

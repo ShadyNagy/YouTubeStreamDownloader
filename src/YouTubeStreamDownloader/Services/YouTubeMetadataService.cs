@@ -174,6 +174,45 @@ public class YouTubeMetadataService : IYouTubeMetadataService
 		}
 	}
 
+	public async Task<string> GetSubtitleAsync(string videoUrl, string fileName, string outputPath, string? languageCode, CancellationToken cancellationToken = default)
+  {
+    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
+    var sanitizedTitle = SanitizeFileName(fileName);
+    var langCode = languageCode ?? "en";
+		var trackInfo = trackManifest.TryGetByLanguage(languageCode ?? "en");
+
+    if (trackInfo is null)
+    {
+			return string.Empty;
+		}
+
+    string filePath = Path.Combine(outputPath, $"{sanitizedTitle}-{langCode}.srt");
+    string? directoryPath = Path.GetDirectoryName(filePath);
+    if (!string.IsNullOrEmpty(directoryPath))
+    {
+      Directory.CreateDirectory(directoryPath);
+    }
+
+		await _youtubeClient.Videos.ClosedCaptions.DownloadAsync(trackInfo, filePath, cancellationToken: cancellationToken);
+
+    return fileName;
+  }
+
+  public async Task<string> GetSubtitleAsync(string videoUrl, string? languageCode, CancellationToken cancellationToken = default)
+  {
+    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
+    var trackInfo = trackManifest.TryGetByLanguage(languageCode ?? "en");
+
+    if (trackInfo is null)
+    {
+      return string.Empty;
+    }
+
+    var subtitleContent = await _youtubeClient.Videos.ClosedCaptions.GetAsync(trackInfo, cancellationToken);
+
+    return subtitleContent.Captions.ToString() ?? string.Empty;
+  }
+
 	private string SanitizeFileName(string name)
 	{
 		foreach (char c in Path.GetInvalidFileNameChars())

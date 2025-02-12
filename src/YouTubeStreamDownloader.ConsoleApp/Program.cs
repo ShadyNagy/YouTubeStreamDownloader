@@ -15,6 +15,7 @@ internal class Program
 
     await DownloadVideoAsync();
 
+    await GetSubtitleAsync();
 
 		Console.WriteLine("Press Any Key To Exit");
     Console.ReadKey();
@@ -36,5 +37,17 @@ internal class Program
 		var outputPath = "C:\\Videos";
     string filePath = await downloader.DownloadVideoAsFileAsync(TEST_VIDEO_URL, outputPath);
     Console.WriteLine($"Video downloaded successfully: {filePath}");
+	}
+
+  static async Task GetSubtitleAsync()
+  {
+    IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
+    var subtitle = await downloader.GetSubtitleAsync(TEST_VIDEO_URL);
+    if (string.IsNullOrEmpty(subtitle))
+    {
+      Console.WriteLine("No Subtitle!");
+      return;
+    }
+    Console.WriteLine($"Subtitle downloaded successfully: {subtitle}");
 	}
 }

@@ -18,9 +18,9 @@ public class YouTubeMetadataService : IYouTubeMetadataService
 {
   private readonly YoutubeClient _youtubeClient;
 
-  public YouTubeMetadataService(YoutubeClient youtubeClient)
+  public YouTubeMetadataService(YoutubeClient? youtubeClient)
   {
-    _youtubeClient = youtubeClient ?? throw new ArgumentNullException(nameof(youtubeClient));
+    _youtubeClient = youtubeClient ?? new YoutubeClient();
   }
 
   public async Task<VideoData> GetVideoInfoAsync(string videoUrl, CancellationToken cancellationToken = default)

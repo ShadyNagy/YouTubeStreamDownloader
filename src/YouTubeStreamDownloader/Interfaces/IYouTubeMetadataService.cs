@@ -8,8 +8,13 @@ namespace YouTubeStreamDownloader.Interfaces;
 
 public interface IYouTubeMetadataService
 {
-  Task<List<PlaylistData>> GetAllPlaylistsAsync(string channelUrl, CancellationToken cancellationToken = default);
+  Task<VideoData> GetVideoInfoAsync(string videoUrl, CancellationToken cancellationToken = default);
+
+	Task<List<PlaylistData>> GetAllPlaylistsAsync(string channelUrl, CancellationToken cancellationToken = default);
   Task<List<VideoData>> GetAllVideosFromPlaylistAsync(string playlistUrl, CancellationToken cancellationToken = default);
   Task<string> DownloadVideoAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default);
-  Task<Stream> DownloadVideoAsStreamAsync(string videoUrl, CancellationToken cancellationToken = default);
+
+  Task<string> DownloadVideoAsFileAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default);
+
+	Task<Stream> DownloadVideoAsStreamAsync(string videoUrl, CancellationToken cancellationToken = default);
 }

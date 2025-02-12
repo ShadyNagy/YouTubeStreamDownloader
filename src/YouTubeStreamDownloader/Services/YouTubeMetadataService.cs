@@ -23,10 +23,30 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     _youtubeClient = youtubeClient ?? throw new ArgumentNullException(nameof(youtubeClient));
   }
 
-  /// <summary>
-  /// Gets all playlists from a YouTube channel.
-  /// </summary>
-  public async Task<List<PlaylistData>> GetAllPlaylistsAsync(
+  public async Task<VideoData> GetVideoInfoAsync(string videoUrl, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var videoInfo = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+
+      return new VideoData
+      {
+        Title = videoInfo.Title,
+        Url = $"https://www.youtube.com/playlist?list={videoInfo.Id}",
+        Author = videoInfo.Author.ChannelTitle,
+        Duration = videoInfo.Duration == null? string.Empty: videoInfo.Duration.ToString()!
+			};
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error fetching playlists: {ex.Message}", ex);
+    }
+  }
+
+	/// <summary>
+	/// Gets all playlists from a YouTube channel.
+	/// </summary>
+	public async Task<List<PlaylistData>> GetAllPlaylistsAsync(
       string channelUrl, CancellationToken cancellationToken = default)
   {
     try
@@ -80,12 +100,17 @@ public class YouTubeMetadataService : IYouTubeMetadataService
 			var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
 			var sanitizedTitle = SanitizeFileName(video.Title);
 			var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
-			var streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
+			var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
 
 			if (streamInfo == null)
 				throw new InvalidOperationException("No suitable video stream found.");
 
 			string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
 
 			await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
 
@@ -97,17 +122,46 @@ public class YouTubeMetadataService : IYouTubeMetadataService
 		}
 	}
 
+  public async Task<string> DownloadVideoAsFileAsync(
+    string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = SanitizeFileName(fileName);
+			var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
+
+      if (streamInfo == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
+
+      await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+
+      return filePath;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading video as file: {ex.Message}", ex);
+    }
+  }
+
 	/// <summary>
 	/// Streams a YouTube video directly.
 	/// </summary>
-	public async Task<Stream> DownloadVideoAsStreamAsync(
-			string videoUrl, CancellationToken cancellationToken = default)
+	public async Task<Stream> DownloadVideoAsStreamAsync(string videoUrl, CancellationToken cancellationToken = default)
 	{
 		try
 		{
 			var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
 			var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
-			var streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
+			var streamInfo = streamManifest.GetVideoStreams().GetWithHighestVideoQuality();
 
 			if (streamInfo == null)
 				throw new InvalidOperationException("No suitable video stream found.");

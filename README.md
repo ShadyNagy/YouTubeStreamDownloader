@@ -30,33 +30,22 @@ Install-Package YouTubeStreamDownloader
 
 ### **1️⃣ Retrieve Video Metadata**
 ```csharp
-using YoutubeExplode;
-using YoutubeExplode.Videos;
-
-var youtube = new YoutubeClient();
-var video = await youtube.Videos.GetAsync("https://youtube.com/watch?v=YOUR_VIDEO_ID");
+IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
+var video = await downloader.GetVideoInfoAsync(TEST_VIDEO_URL);
 
 Console.WriteLine($"Title: {video.Title}");
 Console.WriteLine($"Duration: {video.Duration}");
-Console.WriteLine($"Author: {video.Author.ChannelTitle}");
+Console.WriteLine($"Author: {video.Author}");
 ```
 
 ---
 
 ### **2️⃣ Download YouTube Video**
 ```csharp
-using YoutubeExplode;
-using YoutubeExplode.Videos.Streams;
-
-var youtube = new YoutubeClient();
-var streamManifest = await youtube.Videos.Streams.GetManifestAsync("https://youtube.com/watch?v=YOUR_VIDEO_ID");
-var streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
-
-if (streamInfo != null)
-{
-    await youtube.Videos.Streams.DownloadAsync(streamInfo, "video.mp4");
-    Console.WriteLine("Download Complete!");
-}
+IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
+var outputPath = "C:\\Videos";
+string filePath = await downloader.DownloadVideoAsFileAsync(TEST_VIDEO_URL, outputPath);
+Console.WriteLine($"Video downloaded successfully: {filePath}");
 ```
 
 ---

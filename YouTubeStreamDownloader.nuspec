@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>YouTubeStreamDownloader</id>
+    <title>YouTube Stream Downloader</title>
+    <version>1.0.1</version>
+    <authors>Shady Nagy</authors>
+    <owners>Shady Nagy</owners>
+
+    <description>
+      YouTubeStreamDownloader is a .NET 8 package that allows developers to interact with YouTube.
+      It provides functionality to retrieve video metadata, download videos, extract audio,
+      get subtitles, and fetch playlists and channel information using the YoutubeExplode library.
+    </description>
+
+    <summary>
+      A .NET 8 YouTube Downloader package for retrieving metadata, downloading videos,
+      extracting subtitles, and fetching playlist details.
+    </summary>
+
+    <language>en-US</language>
+    <license type="expression">MIT</license>
+
+    <repository type="git" url="https://github.com/ShadyNagy/YouTubeStreamDownloader" />
+    <projectUrl>https://github.com/ShadyNagy/YouTubeStreamDownloader</projectUrl>
+
+    <releaseNotes>Initial release of YouTubeStreamDownloader v1.0.0.</releaseNotes>
+
+    <tags>YouTube, Streaming, Downloader, YouTube API, Video Download, Subtitles, YouTube Metadata</tags>
+
+    <icon>icon.png</icon>
+    <copyright>Copyright 2019 - 2025 (c) Shady Nagy. All rights reserved.</copyright>
+    <readme>README.md</readme>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <!-- Dependencies -->
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="8.0.0" />
+        <dependency id="YoutubeExplode" version="6.5.3" />
+      </group>
+    </dependencies>
+
+    <RequireLicenseAcceptance>false</RequireLicenseAcceptance>
+  </metadata>
+
+  <files>
+    <file src="src\YouTubeStreamDownloader\bin\Release\net80\YouTubeStreamDownloader.dll" target="lib\net80" />
+    <file src="icon.png" />
+    <file src="README.md" />
+  </files>
+</package>

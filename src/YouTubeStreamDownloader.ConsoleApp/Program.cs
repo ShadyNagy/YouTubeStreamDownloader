@@ -1,6 +1,8 @@
 ﻿using YoutubeExplode;
 using YouTubeStreamDownloader.Interfaces;
 using YouTubeStreamDownloader.Services;
+using YouTubeStreamDownloader.VideoMerger.Interfaces;
+using YouTubeStreamDownloader.VideoMerger.Services;
 
 namespace YouTubeStreamDownloader.ConsoleApp;
 
@@ -14,7 +16,9 @@ internal class Program
 
     await DownloadVideoAsync();
 
-    await GetSubtitleAsync();
+    await GetVideoMergedAsync();
+
+		await GetSubtitleAsync();
 
 		Console.WriteLine("Press Any Key To Exit");
     Console.ReadKey();
@@ -49,4 +53,19 @@ internal class Program
     }
     Console.WriteLine($"Subtitle downloaded successfully: {subtitle}");
 	}
+
+  static async Task GetVideoMergedAsync()
+  {
+    IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
+    IVideoMerger videoMerger = new VideoMergerService();
+		IExtendedYouTubeService extendedDownloader = new ExtendedYouTubeService(videoMerger, downloader);
+    var outputPath = "C:\\Videos";
+		var subtitle = await extendedDownloader.DownloadAndMergeVideoWithAudioAsFileAsync(TEST_VIDEO_URL, "test", outputPath);
+    if (string.IsNullOrEmpty(subtitle))
+    {
+      Console.WriteLine("No Subtitle!");
+      return;
+    }
+    Console.WriteLine($"Subtitle downloaded successfully: {subtitle}");
+  }
 }

@@ -28,8 +28,9 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
 			// Download video and audio
 			string downloadedVideo = await youTubeMetadataService.DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
       string downloadedAudio = await youTubeMetadataService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      var sanitizedTitle = youTubeMetadataService.SanitizeFileName(fileName);
 
-			string mergedOutput = Path.Combine(outputPath, $"{fileName}.mp4");
+			string mergedOutput = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
 
 			// Merge audio and video
 			await videoMerger.MergeAudioAndVideoAsync(downloadedVideo, downloadedAudio, mergedOutput);
@@ -42,7 +43,7 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
 		}
 	}
 
-  public async Task<byte[]> DownloadAndMergeVideoWithAudioAsFileAsync(
+  public async Task<byte[]> DownloadAndMergeVideoWithAudioAsync(
     string videoUrl,
     CancellationToken cancellationToken = default)
   {
@@ -59,7 +60,8 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
       string downloadedAudio = await youTubeMetadataService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
 
       var parts = downloadedVideo.Split(Path.PathSeparator);
-			string mergedOutput = Path.Combine(outputPath, parts[^1]);
+      var sanitizedTitle = youTubeMetadataService.SanitizeFileName(parts[^1]);
+			string mergedOutput = Path.Combine(outputPath, sanitizedTitle);
 
       // Merge audio and video
       await videoMerger.MergeAudioAndVideoAsync(downloadedVideo, downloadedAudio, mergedOutput);

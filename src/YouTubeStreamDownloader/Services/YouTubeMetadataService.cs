@@ -311,7 +311,7 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     return subtitleContent.Captions.ToString() ?? string.Empty;
   }
 
-	private string SanitizeFileName(string name)
+	public string SanitizeFileName(string name)
 	{
 		foreach (char c in Path.GetInvalidFileNameChars())
 		{

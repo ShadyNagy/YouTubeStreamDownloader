@@ -10,7 +10,7 @@ public interface IExtendedYouTubeService
     string fileName,
     string outputPath,
     CancellationToken cancellationToken = default);
-  Task<byte[]> DownloadAndMergeVideoWithAudioAsFileAsync(
+  Task<byte[]> DownloadAndMergeVideoWithAudioAsync(
     string videoUrl,
     CancellationToken cancellationToken = default);
 }

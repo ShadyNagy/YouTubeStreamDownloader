@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\YouTubeStreamDownloader.VideoMerger\YouTubeStreamDownloader.VideoMerger.csproj" />
     <ProjectReference Include="..\YouTubeStreamDownloader\YouTubeStreamDownloader.csproj" />
   </ItemGroup>
 

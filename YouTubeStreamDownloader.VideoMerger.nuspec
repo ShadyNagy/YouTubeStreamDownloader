@@ -21,8 +21,8 @@
     <language>en-US</language>
     <license type="expression">MIT</license>
 
-    <repository type="git" url="https://github.com/ShadyNagy/YouTubeStreamDownloader.VideoMerger" />
-    <projectUrl>https://github.com/ShadyNagy/YouTubeStreamDownloader.VideoMerger</projectUrl>
+    <repository type="git" url="https://github.com/ShadyNagy/YouTubeStreamDownloader" />
+    <projectUrl>https://github.com/ShadyNagy/YouTubeStreamDownloader</projectUrl>
 
     <releaseNotes>Initial release of YouTubeStreamDownloader.VideoMerger.</releaseNotes>
 

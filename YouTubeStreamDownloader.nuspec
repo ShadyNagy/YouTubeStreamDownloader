@@ -24,7 +24,7 @@
     <repository type="git" url="https://github.com/ShadyNagy/YouTubeStreamDownloader" />
     <projectUrl>https://github.com/ShadyNagy/YouTubeStreamDownloader</projectUrl>
 
-    <releaseNotes>Initial release of YouTubeStreamDownloader v1.0.0.</releaseNotes>
+    <releaseNotes>Initial release of YouTubeStreamDownloader.</releaseNotes>
 
     <tags>YouTube, Streaming, Downloader, YouTube API, Video Download, Subtitles, YouTube Metadata</tags>
 

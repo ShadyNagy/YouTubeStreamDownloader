@@ -8,11 +8,13 @@ namespace YouTubeStreamDownloader.ConsoleApp;
 
 internal class Program
 {
-  static string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=eld6m3KLEHo";
+  static string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=s1oWTlDDhPM";
 
   static async Task Main(string[] args)
   {
-    await GetVideoInfoAsync();
+    await GetVideoWithSubtitleAsync();
+
+		await GetVideoInfoAsync();
 
     await DownloadVideoAsync();
 
@@ -60,6 +62,19 @@ internal class Program
     IVideoMerger videoMerger = new VideoMergerService();
 		IExtendedYouTubeService extendedDownloader = new ExtendedYouTubeService(videoMerger, downloader);
 		var videoBytes = await extendedDownloader.DownloadAndMergeVideoWithAudioAsync(TEST_VIDEO_URL);
+    if (videoBytes.Length <= 0)
+    {
+      Console.WriteLine("No Video!");
+      return;
+    }
+    Console.WriteLine("Video downloaded successfully");
+  }
+
+  static async Task GetVideoWithSubtitleAsync()
+  {
+    IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
+    var outputPath = "C:\\Videos";
+		var videoBytes = await downloader.DownloadVideoWithSubtitlesAsFileAsync(TEST_VIDEO_URL, outputPath);
     if (videoBytes.Length <= 0)
     {
       Console.WriteLine("No Video!");

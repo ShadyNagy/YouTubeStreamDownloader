@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -122,7 +123,38 @@ public class YouTubeMetadataService : IYouTubeMetadataService
 		}
 	}
 
-  public async Task<string> DownloadVideoOnlyAsFileAsync(
+  public async Task<string> DownloadVideoWithSubtitlesAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = SanitizeFileName(video.Title);
+      var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      IEnumerable<IVideoStreamInfo> streamInfos = streamManifest.GetVideoStreams();
+      if (streamInfos == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+			var streamInfo = VideoTypeEngine.GetByVideoType(VideoType.Q1080, streamInfos);
+      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
+
+      await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+
+      _ = await GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
+
+			return filePath;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading video as file: {ex.Message}", ex);
+    }
+  }
+
+	public async Task<string> DownloadVideoOnlyAsFileAsync(
     string videoUrl, string outputPath, CancellationToken cancellationToken = default)
   {
     try
@@ -296,7 +328,22 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     return fileName;
   }
 
-  public async Task<string> GetSubtitleAsync(string videoUrl, string? languageCode, CancellationToken cancellationToken = default)
+  public async Task<List<string>> GetAllSubtitlesAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
+  {
+    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
+    var trackInfos = trackManifest.Tracks;
+
+    var result = new List<string>();
+    foreach (var trackInfo in trackInfos)
+    {
+      var path = await GetSubtitleAsync(videoUrl, fileName, outputPath, trackInfo.Language.Code, cancellationToken);
+      result.Add(path);
+		}
+
+    return result;
+  }
+
+	public async Task<string> GetSubtitleAsync(string videoUrl, string? languageCode, CancellationToken cancellationToken = default)
   {
     var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
     var trackInfo = trackManifest.TryGetByLanguage(languageCode ?? "en");

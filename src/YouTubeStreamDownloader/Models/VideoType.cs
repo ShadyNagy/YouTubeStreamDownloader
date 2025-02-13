@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace YouTubeStreamDownloader.Models;
+﻿namespace YouTubeStreamDownloader.Models;
 public enum VideoType
 {
   Q144 = 144,

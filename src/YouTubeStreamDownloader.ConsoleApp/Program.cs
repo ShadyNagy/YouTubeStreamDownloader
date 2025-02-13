@@ -59,13 +59,12 @@ internal class Program
     IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
     IVideoMerger videoMerger = new VideoMergerService();
 		IExtendedYouTubeService extendedDownloader = new ExtendedYouTubeService(videoMerger, downloader);
-    var outputPath = "C:\\Videos";
-		var subtitle = await extendedDownloader.DownloadAndMergeVideoWithAudioAsFileAsync(TEST_VIDEO_URL, "test", outputPath);
-    if (string.IsNullOrEmpty(subtitle))
+		var videoBytes = await extendedDownloader.DownloadAndMergeVideoWithAudioAsync(TEST_VIDEO_URL);
+    if (videoBytes.Length <= 0)
     {
-      Console.WriteLine("No Subtitle!");
+      Console.WriteLine("No Video!");
       return;
     }
-    Console.WriteLine($"Subtitle downloaded successfully: {subtitle}");
+    Console.WriteLine("Video downloaded successfully");
   }
 }

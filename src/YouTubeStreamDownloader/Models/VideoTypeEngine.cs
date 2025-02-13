@@ -29,16 +29,16 @@ public class VideoTypeEngine
       : VideoType.Q144;
   }
 
-	public static IVideoStreamInfo GetByVideoType(VideoType videoType, IEnumerable<IVideoStreamInfo> streamInfos)
+	public static IVideoStreamInfo? GetMp4ByVideoType(VideoType videoType, IEnumerable<IVideoStreamInfo> streamInfos)
   {
 		foreach (var videoStreamInfo in streamInfos)
     {
-      if (Map(videoStreamInfo) == videoType)
+      if (Map(videoStreamInfo) == videoType && videoStreamInfo.Container.Name.ToLower() == "mp4")
       {
         return videoStreamInfo;
       }
     }
 
-    return streamInfos.ElementAt(0);
+    return null;
   }
 }

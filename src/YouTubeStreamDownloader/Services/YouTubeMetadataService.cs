@@ -134,7 +134,15 @@ public class YouTubeMetadataService : IYouTubeMetadataService
       if (streamInfos == null)
         throw new InvalidOperationException("No suitable video stream found.");
 
-			var streamInfo = VideoTypeEngine.GetByVideoType(VideoType.Q1080, streamInfos);
+			var streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q1080, streamInfos);
+      if (streamInfo == null)
+      {
+        streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q720, streamInfos);
+        if (streamInfo == null)
+        {
+          streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q480, streamInfos);
+				}
+			}
       string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
       string? directoryPath = Path.GetDirectoryName(filePath);
       if (!string.IsNullOrEmpty(directoryPath))
@@ -154,8 +162,7 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     }
   }
 
-	public async Task<string> DownloadVideoOnlyAsFileAsync(
-    string videoUrl, string outputPath, CancellationToken cancellationToken = default)
+	public async Task<string> DownloadHighestVideoOnlyAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
   {
     try
     {
@@ -184,7 +191,48 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     }
   }
 
-  public async Task<string> DownloadAudioOnlyAsFileAsync(
+  public async Task<string> DownloadVideoOnlyAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = SanitizeFileName(video.Title);
+      var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+			IEnumerable<IVideoStreamInfo> streamInfos = streamManifest.GetVideoOnlyStreams();
+      if (streamInfos == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      var streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q1080, streamInfos);
+      if (streamInfo == null)
+      {
+        streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q720, streamInfos);
+        if (streamInfo == null)
+        {
+          streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q480, streamInfos);
+        }
+      }
+
+			if (streamInfo == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
+
+      await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+
+      return filePath;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading video as file: {ex.Message}", ex);
+    }
+  }
+
+	public async Task<string> DownloadAudioOnlyAsFileAsync(
     string videoUrl, string outputPath, CancellationToken cancellationToken = default)
   {
     try

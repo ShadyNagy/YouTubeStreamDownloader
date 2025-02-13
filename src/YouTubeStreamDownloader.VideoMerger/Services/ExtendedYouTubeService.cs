@@ -42,8 +42,74 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
 			throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
 		}
 	}
+  
+  public async Task<string> DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(
+			string videoUrl,
+			string outputPath,
+			CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			// Ensure output directory exists
+			if (!Directory.Exists(outputPath))
+				Directory.CreateDirectory(outputPath);
 
-  public async Task<byte[]> DownloadAndMergeVideoWithAudioAsync(
+			// Download video and audio
+			string downloadedVideo = await youTubeMetadataService.DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await youTubeMetadataService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+
+      var parts = downloadedVideo.Split(Path.DirectorySeparatorChar);
+      var fileName = parts[^1];
+			string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+			var sanitizedTitle = youTubeMetadataService.SanitizeFileName(fileName);
+			string mergedOutput = Path.Combine(outputPath, sanitizedTitle + ".mrg");
+
+			// Merge audio and video
+			await videoMerger.MergeAudioAndVideoAsync(downloadedVideo, downloadedAudio, mergedOutput);
+
+      _ = await youTubeMetadataService.GetAllSubtitlesAsync(videoUrl, fileNameWithoutExtension, outputPath, cancellationToken);
+
+			return mergedOutput;
+		}
+		catch (Exception ex)
+		{
+			throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
+		}
+	}
+
+  public async Task<string> DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(
+    string videoUrl,
+    string fileName,
+		string outputPath,
+    CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      // Ensure output directory exists
+      if (!Directory.Exists(outputPath))
+        Directory.CreateDirectory(outputPath);
+
+      // Download video and audio
+      string downloadedVideo = await youTubeMetadataService.DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await youTubeMetadataService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+
+      var sanitizedTitle = youTubeMetadataService.SanitizeFileName(fileName);
+      string mergedOutput = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+
+      // Merge audio and video
+      await videoMerger.MergeAudioAndVideoAsync(downloadedVideo, downloadedAudio, mergedOutput);
+
+      _ = await youTubeMetadataService.GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
+
+      return mergedOutput;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
+    }
+  }
+
+	public async Task<byte[]> DownloadAndMergeVideoWithAudioAsync(
     string videoUrl,
     CancellationToken cancellationToken = default)
   {

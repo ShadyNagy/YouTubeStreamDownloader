@@ -30,12 +30,14 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
       string downloadedAudio = await youTubeMetadataService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
       var sanitizedTitle = youTubeMetadataService.SanitizeFileName(fileName);
 
-			string mergedOutput = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
 
-			// Merge audio and video
-			await videoMerger.MergeAudioAndVideoAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      // Merge audio and video
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
 
-			return mergedOutput;
+      return mergedOutput;
 		}
 		catch (Exception ex)
 		{
@@ -62,10 +64,12 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
       var fileName = parts[^1];
 			string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
 			var sanitizedTitle = youTubeMetadataService.SanitizeFileName(fileName);
-			string mergedOutput = Path.Combine(outputPath, sanitizedTitle + ".mrg");
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
 
 			// Merge audio and video
-			await videoMerger.MergeAudioAndVideoAsync(downloadedVideo, downloadedAudio, mergedOutput);
+			await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
 
       _ = await youTubeMetadataService.GetAllSubtitlesAsync(videoUrl, fileNameWithoutExtension, outputPath, cancellationToken);
 
@@ -94,10 +98,12 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
       string downloadedAudio = await youTubeMetadataService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
 
       var sanitizedTitle = youTubeMetadataService.SanitizeFileName(fileName);
-      string mergedOutput = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
 
       // Merge audio and video
-      await videoMerger.MergeAudioAndVideoAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
 
       _ = await youTubeMetadataService.GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
 
@@ -127,10 +133,10 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
 
       var parts = downloadedVideo.Split(Path.PathSeparator);
       var sanitizedTitle = youTubeMetadataService.SanitizeFileName(parts[^1]);
-			string mergedOutput = Path.Combine(outputPath, sanitizedTitle);
+			string mergedOutput = Path.Combine(outputPath, $"{sanitizedTitle}.mkv");
 
       // Merge audio and video
-      await videoMerger.MergeAudioAndVideoAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
       
       return await File.ReadAllBytesAsync(mergedOutput, cancellationToken);
 		}
@@ -138,5 +144,18 @@ public class ExtendedYouTubeService(IVideoMerger videoMerger, IYouTubeMetadataSe
     {
       throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
     }
+  }
+
+  private void RenameAndRemoveOld(string downloadedVideo, string downloadedAudio, string tempFileName)
+  {
+    File.Delete(downloadedVideo);
+    File.Delete(downloadedAudio);
+
+    var parts = downloadedVideo.Split(Path.PathSeparator);
+    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(parts[^1]);
+    var fileName = youTubeMetadataService.SanitizeFileName(fileNameWithoutExtension);
+    var outputPath = Path.GetDirectoryName(downloadedVideo);
+    string mergedOutputDes = Path.Combine(outputPath, $"{fileName}.mkv");
+    File.Move(tempFileName, mergedOutputDes);
   }
 }

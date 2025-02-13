@@ -8,12 +8,10 @@ namespace YouTubeStreamDownloader.ConsoleApp;
 
 internal class Program
 {
-  static string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=s1oWTlDDhPM";
+  static string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=eld6m3KLEHo";
 
   static async Task Main(string[] args)
   {
-    await TryAsync();
-
 		await GetVideoWithSubtitleAsync();
 
 		await GetVideoInfoAsync();

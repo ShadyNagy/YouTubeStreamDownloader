@@ -1,12 +1,10 @@
-﻿using FluentAssertions;
-using NSubstitute;
+﻿using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using YoutubeExplode;
 using YoutubeExplode.Channels;
 using YoutubeExplode.Common;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos;
-using YouTubeStreamDownloader.Services;
 
 namespace YouTubeStreamDownloader.Tests;
   public class GetAllPlaylistsAsyncTests

@@ -1,6 +1,8 @@
-﻿using YoutubeExplode;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using YoutubeExplode;
+using YouTubeStreamDownloader.Extensions;
 using YouTubeStreamDownloader.Interfaces;
-using YouTubeStreamDownloader.Services;
 using YouTubeStreamDownloader.VideoMerger.Interfaces;
 using YouTubeStreamDownloader.VideoMerger.Services;
 
@@ -8,11 +10,18 @@ namespace YouTubeStreamDownloader.ConsoleApp;
 
 internal class Program
 {
-  static string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=eld6m3KLEHo";
+  const string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=eld6m3KLEHo";
+  static IDownloadAudioService _downloadAudioService = null!;
+  static IPlaylistService _playlistService = null!;
+  static IDownloadSubtitleService _downloadSubtitleService = null!;
+  static IDownloadVideoService _downloadVideoService = null!;
+  static IVideoInfoService _videoInfoService = null!;
 
   static async Task Main(string[] args)
   {
-		await GetVideoWithSubtitleAsync();
+    SetupDi();
+
+    await GetVideoWithSubtitleAsync();
 
 		await GetVideoInfoAsync();
 
@@ -45,8 +54,7 @@ internal class Program
 
   static async Task GetVideoInfoAsync()
   {
-    IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
-    var video = await downloader.GetVideoInfoAsync(TEST_VIDEO_URL);
+    var video = await _videoInfoService.GetVideoInfoAsync(TEST_VIDEO_URL);
 
     Console.WriteLine($"Title: {video.Title}");
     Console.WriteLine($"Duration: {video.Duration}");
@@ -55,16 +63,14 @@ internal class Program
 
   static async Task DownloadVideoAsync()
   {
-		IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
 		var outputPath = "C:\\Videos";
-    string filePath = await downloader.DownloadVideoAsFileAsync(TEST_VIDEO_URL, outputPath);
+    string filePath = await _downloadVideoService.DownloadVideoAsFileAsync(TEST_VIDEO_URL, outputPath);
     Console.WriteLine($"Video downloaded successfully: {filePath}");
 	}
 
   static async Task GetSubtitleAsync()
   {
-    IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
-    var subtitle = await downloader.GetSubtitleAsync(TEST_VIDEO_URL);
+    var subtitle = await _downloadSubtitleService.GetSubtitleAsync(TEST_VIDEO_URL);
     if (string.IsNullOrEmpty(subtitle))
     {
       Console.WriteLine("No Subtitle!");
@@ -75,10 +81,7 @@ internal class Program
 
   static async Task GetVideoMergedAsync()
   {
-    IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
-    IVideoMerger videoMerger = new VideoMergerService();
-		IExtendedYouTubeService extendedDownloader = new ExtendedYouTubeService(videoMerger, downloader);
-		var videoBytes = await extendedDownloader.DownloadAndMergeVideoWithAudioAsync(TEST_VIDEO_URL);
+		var videoBytes = await _downloadVideoService.DownloadAndMergeVideoWithAudioAsync(TEST_VIDEO_URL);
     if (videoBytes.Length <= 0)
     {
       Console.WriteLine("No Video!");
@@ -89,16 +92,30 @@ internal class Program
 
   static async Task GetVideoWithSubtitleAsync()
   {
-		IYouTubeMetadataService downloader = new YouTubeMetadataService(new YoutubeClient());
-    IVideoMerger videoMerger = new VideoMergerService();
-    IExtendedYouTubeService extendedDownloader = new ExtendedYouTubeService(videoMerger, downloader);
 		var outputPath = "C:\\Videos";
-		var videoBytes = await extendedDownloader.DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(TEST_VIDEO_URL, outputPath);
-    if (videoBytes.Length <= 0)
+		var videoPath = await _downloadVideoService.DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(TEST_VIDEO_URL, outputPath);
+    if (string.IsNullOrEmpty(videoPath))
     {
       Console.WriteLine("No Video!");
       return;
     }
     Console.WriteLine("Video downloaded successfully");
+  }
+
+
+  static void SetupDi()
+  {
+    using IHost host = Host.CreateDefaultBuilder()
+      .ConfigureServices((_, services) =>
+      {
+        services.AddYouTubeStreamDownloaderService();
+      })
+      .Build();
+
+    _downloadAudioService = host.Services.GetRequiredService<IDownloadAudioService>();
+    _downloadSubtitleService = host.Services.GetRequiredService<IDownloadSubtitleService>();
+    _downloadVideoService = host.Services.GetRequiredService<IDownloadVideoService>();
+    _playlistService = host.Services.GetRequiredService<IPlaylistService>();
+    _videoInfoService = host.Services.GetRequiredService<IVideoInfoService>();
   }
 }

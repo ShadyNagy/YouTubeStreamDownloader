@@ -1,105 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using YoutubeExplode;
-using YoutubeExplode.Channels;
-using YoutubeExplode.Common;
-using YoutubeExplode.Playlists;
 using YoutubeExplode.Videos.Streams;
+using YouTubeStreamDownloader.Helpers;
 using YouTubeStreamDownloader.Interfaces;
 using YouTubeStreamDownloader.Models;
+using YouTubeStreamDownloader.VideoMerger.Interfaces;
 
 namespace YouTubeStreamDownloader.Services;
 
-public class YouTubeMetadataService : IYouTubeMetadataService
+public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleService, IVideoMerger videoMerger, IDownloadAudioService downloadAudioService) : IDownloadVideoService
 {
-  private readonly YoutubeClient _youtubeClient;
+  private readonly YoutubeClient _youtubeClient = new();
 
-  public YouTubeMetadataService(YoutubeClient? youtubeClient)
-  {
-    _youtubeClient = youtubeClient ?? new YoutubeClient();
-  }
-
-  public async Task<VideoData> GetVideoInfoAsync(string videoUrl, CancellationToken cancellationToken = default)
-  {
-    try
-    {
-      var videoInfo = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-
-      return new VideoData
-      {
-        Title = videoInfo.Title,
-        Url = $"https://www.youtube.com/playlist?list={videoInfo.Id}",
-        Author = videoInfo.Author.ChannelTitle,
-        Duration = videoInfo.Duration == null? string.Empty: videoInfo.Duration.ToString()!
-			};
-    }
-    catch (Exception ex)
-    {
-      throw new InvalidOperationException($"Error fetching playlists: {ex.Message}", ex);
-    }
-  }
-
-	/// <summary>
-	/// Gets all playlists from a YouTube channel.
-	/// </summary>
-	public async Task<List<PlaylistData>> GetAllPlaylistsAsync(
-      string channelUrl, CancellationToken cancellationToken = default)
-  {
-    try
-    {
-      var channel = await _youtubeClient.Channels.GetAsync(ChannelHandle.Parse(channelUrl).Value, cancellationToken);
-      var playlists = await _youtubeClient.Channels.GetUploadsAsync(channel.Id, cancellationToken);
-
-      return playlists.Select(p => new PlaylistData
-      {
-        Title = p.Title,
-        Url = $"https://www.youtube.com/playlist?list={p.Id}"
-      }).ToList();
-    }
-    catch (Exception ex)
-    {
-      throw new InvalidOperationException($"Error fetching playlists: {ex.Message}", ex);
-    }
-  }
-
-  /// <summary>
-  /// Gets all video links and titles from a given playlist.
-  /// </summary>
-  public async Task<List<VideoData>> GetAllVideosFromPlaylistAsync(
-      string playlistUrl, CancellationToken cancellationToken = default)
-  {
-    try
-    {
-      var playlistId = PlaylistId.Parse(playlistUrl);
-      var videos = await _youtubeClient.Playlists.GetVideosAsync(playlistId, cancellationToken);
-
-      return videos.Select(v => new VideoData
-      {
-        Title = v.Title,
-        Url = $"https://www.youtube.com/watch?v={v.Id}"
-      }).ToList();
-    }
-    catch (Exception ex)
-    {
-      throw new InvalidOperationException($"Error fetching videos from playlist: {ex.Message}", ex);
-    }
-  }
-
-	/// <summary>
-	/// Downloads a YouTube video as a file.
-	/// </summary>
-	public async Task<string> DownloadVideoAsFileAsync(
-			string videoUrl, string outputPath, CancellationToken cancellationToken = default)
+  public async Task<string> DownloadVideoAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
 	{
 		try
 		{
 			var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-			var sanitizedTitle = SanitizeFileName(video.Title);
+			var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
 			var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
 			var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
 
@@ -128,7 +50,7 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     try
     {
       var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-      var sanitizedTitle = SanitizeFileName(video.Title);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
       var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
       IEnumerable<IVideoStreamInfo> streamInfos = streamManifest.GetVideoStreams();
       if (streamInfos == null)
@@ -152,7 +74,7 @@ public class YouTubeMetadataService : IYouTubeMetadataService
 
       await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
 
-      _ = await GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
+      _ = await downloadSubtitleService.GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
 
 			return filePath;
     }
@@ -167,7 +89,7 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     try
     {
       var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-      var sanitizedTitle = SanitizeFileName(video.Title);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
       var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
       var streamInfo = streamManifest.GetVideoOnlyStreams().TryGetWithHighestVideoQuality();
 
@@ -196,7 +118,7 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     try
     {
       var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-      var sanitizedTitle = SanitizeFileName(video.Title);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
       var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
 			IEnumerable<IVideoStreamInfo> streamInfos = streamManifest.GetVideoOnlyStreams();
       if (streamInfos == null)
@@ -232,43 +154,12 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     }
   }
 
-	public async Task<string> DownloadAudioOnlyAsFileAsync(
-    string videoUrl, string outputPath, CancellationToken cancellationToken = default)
+	public async Task<string> DownloadVideoAsFileAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
   {
     try
     {
       var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-      var sanitizedTitle = SanitizeFileName(video.Title);
-      var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
-      var streamInfo = streamManifest.GetAudioOnlyStreams().TryGetWithHighestBitrate();
-
-      if (streamInfo == null)
-        throw new InvalidOperationException("No suitable audio stream found.");
-
-      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp3");
-      string? directoryPath = Path.GetDirectoryName(filePath);
-      if (!string.IsNullOrEmpty(directoryPath))
-      {
-        Directory.CreateDirectory(directoryPath);
-      }
-
-      await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
-
-      return filePath;
-    }
-    catch (Exception ex)
-    {
-      throw new InvalidOperationException($"Error downloading audio as file: {ex.Message}", ex);
-    }
-  }
-
-	public async Task<string> DownloadVideoAsFileAsync(
-    string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
-  {
-    try
-    {
-      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-      var sanitizedTitle = SanitizeFileName(fileName);
+      var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
 			var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
       var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
 
@@ -292,9 +183,6 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     }
   }
 
-	/// <summary>
-	/// Streams a YouTube video directly.
-	/// </summary>
 	public async Task<Stream> DownloadVideoAsStreamAsync(string videoUrl, CancellationToken cancellationToken = default)
 	{
 		try
@@ -333,85 +221,125 @@ public class YouTubeMetadataService : IYouTubeMetadataService
     }
   }
 
-  public async Task<Stream> DownloadAudioOnlyAsStreamAsync(string videoUrl, CancellationToken cancellationToken = default)
+  public async Task<string> DownloadAndMergeVideoWithAudioAsFileAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
   {
     try
     {
-      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-      var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
-      var streamInfo = streamManifest.GetAudioOnlyStreams().TryGetWithHighestBitrate();
+      if (!Directory.Exists(outputPath))
+        Directory.CreateDirectory(outputPath);
 
-      if (streamInfo == null)
-        throw new InvalidOperationException("No suitable audio stream found.");
+      string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
 
-      return await _youtubeClient.Videos.Streams.GetAsync(streamInfo, cancellationToken);
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
+
+      return mergedOutput;
     }
     catch (Exception ex)
     {
-      throw new InvalidOperationException($"Error streaming audio: {ex.Message}", ex);
+      throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
     }
   }
 
-	public async Task<string> GetSubtitleAsync(string videoUrl, string fileName, string outputPath, string? languageCode, CancellationToken cancellationToken = default)
+  public async Task<string> DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
   {
-    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
-    var sanitizedTitle = SanitizeFileName(fileName);
-    var langCode = languageCode ?? "en";
-		var trackInfo = trackManifest.TryGetByLanguage(languageCode ?? "en");
-
-    if (trackInfo is null)
+    try
     {
-			return string.Empty;
-		}
+      if (!Directory.Exists(outputPath))
+        Directory.CreateDirectory(outputPath);
 
-    string filePath = Path.Combine(outputPath, $"{sanitizedTitle}-{langCode}.srt");
-    string? directoryPath = Path.GetDirectoryName(filePath);
-    if (!string.IsNullOrEmpty(directoryPath))
-    {
-      Directory.CreateDirectory(directoryPath);
+      string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+
+      var parts = downloadedVideo.Split(Path.DirectorySeparatorChar);
+      var fileName = parts[^1];
+      string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+      var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
+
+      _ = await downloadSubtitleService.GetAllSubtitlesAsync(videoUrl, fileNameWithoutExtension, outputPath, cancellationToken);
+
+      return mergedOutput;
     }
-
-		await _youtubeClient.Videos.ClosedCaptions.DownloadAsync(trackInfo, filePath, cancellationToken: cancellationToken);
-
-    return fileName;
-  }
-
-  public async Task<List<string>> GetAllSubtitlesAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
-  {
-    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
-    var trackInfos = trackManifest.Tracks;
-
-    var result = new List<string>();
-    foreach (var trackInfo in trackInfos)
+    catch (Exception ex)
     {
-      var path = await GetSubtitleAsync(videoUrl, fileName, outputPath, trackInfo.Language.Code, cancellationToken);
-      result.Add(path);
-		}
-
-    return result;
-  }
-
-	public async Task<string> GetSubtitleAsync(string videoUrl, string? languageCode, CancellationToken cancellationToken = default)
-  {
-    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
-    var trackInfo = trackManifest.TryGetByLanguage(languageCode ?? "en");
-
-    if (trackInfo is null)
-    {
-      return string.Empty;
+      throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
     }
-
-    var subtitleContent = await _youtubeClient.Videos.ClosedCaptions.GetAsync(trackInfo, cancellationToken);
-
-    return subtitleContent.Captions.ToString() ?? string.Empty;
   }
 
-	public string SanitizeFileName(string name)
-	{
-		foreach (char c in Path.GetInvalidFileNameChars())
-		{
-			name = name.Replace(c, '_');
-		}
-		return name;
-	}
+
+  public async Task<string> DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      if (!Directory.Exists(outputPath))
+        Directory.CreateDirectory(outputPath);
+
+      string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+
+      var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
+
+      _ = await downloadSubtitleService.GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
+
+      return mergedOutput;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
+    }
+  }
+
+  public async Task<byte[]> DownloadAndMergeVideoWithAudioAsync(string videoUrl, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var outputPath = "temp";
+
+      if (!Directory.Exists(outputPath))
+        Directory.CreateDirectory(outputPath);
+
+      string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+
+      var parts = downloadedVideo.Split(Path.PathSeparator);
+      var sanitizedTitle = FileHelper.SanitizeFileName(parts[^1]);
+      string mergedOutput = Path.Combine(outputPath, $"{sanitizedTitle}.mkv");
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+
+      return await File.ReadAllBytesAsync(mergedOutput, cancellationToken);
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
+    }
+  }
+
+  private void RenameAndRemoveOld(string downloadedVideo, string downloadedAudio, string tempFileName)
+  {
+    File.Delete(downloadedVideo);
+    File.Delete(downloadedAudio);
+
+    var parts = downloadedVideo.Split(Path.PathSeparator);
+    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(parts[^1]);
+    var fileName = FileHelper.SanitizeFileName(fileNameWithoutExtension);
+    var outputPath = Path.GetDirectoryName(downloadedVideo);
+    string mergedOutputDes = Path.Combine(outputPath, $"{fileName}.mkv");
+    File.Move(tempFileName, mergedOutputDes);
+  }
 }

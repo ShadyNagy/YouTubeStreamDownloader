@@ -16,4 +16,8 @@
     <PackageReference Include="YoutubeExplode" Version="6.5.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\YouTubeStreamDownloader.VideoMerger\YouTubeStreamDownloader.VideoMerger.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -8,13 +8,11 @@ using YouTubeStreamDownloader.Interfaces;
 
 namespace YouTubeStreamDownloader.Services;
 
-public class DownloadSubtitleService : IDownloadSubtitleService
+public class DownloadSubtitleService(YoutubeClient youtubeClient) : IDownloadSubtitleService
 {
-  private readonly YoutubeClient _youtubeClient = new();
-
 	public async Task<string> GetSubtitleAsync(string videoUrl, string fileName, string outputPath, string? languageCode, CancellationToken cancellationToken = default)
   {
-    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
+    var trackManifest = await youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
     var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
     var langCode = languageCode ?? "en";
 		var trackInfo = trackManifest.TryGetByLanguage(languageCode ?? "en");
@@ -31,14 +29,14 @@ public class DownloadSubtitleService : IDownloadSubtitleService
       Directory.CreateDirectory(directoryPath);
     }
 
-		await _youtubeClient.Videos.ClosedCaptions.DownloadAsync(trackInfo, filePath, cancellationToken: cancellationToken);
+		await youtubeClient.Videos.ClosedCaptions.DownloadAsync(trackInfo, filePath, cancellationToken: cancellationToken);
 
     return fileName;
   }
 
   public async Task<List<string>> GetAllSubtitlesAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
   {
-    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
+    var trackManifest = await youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
     var trackInfos = trackManifest.Tracks;
 
     var result = new List<string>();
@@ -53,7 +51,7 @@ public class DownloadSubtitleService : IDownloadSubtitleService
 
 	public async Task<string> GetSubtitleAsync(string videoUrl, string? languageCode, CancellationToken cancellationToken = default)
   {
-    var trackManifest = await _youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
+    var trackManifest = await youtubeClient.Videos.ClosedCaptions.GetManifestAsync(videoUrl, cancellationToken);
     var trackInfo = trackManifest.TryGetByLanguage(languageCode ?? "en");
 
     if (trackInfo is null)
@@ -61,7 +59,7 @@ public class DownloadSubtitleService : IDownloadSubtitleService
       return string.Empty;
     }
 
-    var subtitleContent = await _youtubeClient.Videos.ClosedCaptions.GetAsync(trackInfo, cancellationToken);
+    var subtitleContent = await youtubeClient.Videos.ClosedCaptions.GetAsync(trackInfo, cancellationToken);
 
     return subtitleContent.Captions.ToString() ?? string.Empty;
   }

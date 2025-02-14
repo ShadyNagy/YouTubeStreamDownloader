@@ -12,17 +12,15 @@ using YouTubeStreamDownloader.VideoMerger.Interfaces;
 
 namespace YouTubeStreamDownloader.Services;
 
-public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleService, IVideoMerger videoMerger, IDownloadAudioService downloadAudioService) : IDownloadVideoService
+public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitleService downloadSubtitleService, IVideoMerger videoMerger, IDownloadAudioService downloadAudioService) : IDownloadVideoService
 {
-  private readonly YoutubeClient _youtubeClient = new();
-
   public async Task<string> DownloadVideoAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
 	{
 		try
 		{
-			var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+			var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
 			var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
-			var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+			var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
 			var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
 
 			if (streamInfo == null)
@@ -35,7 +33,7 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
         Directory.CreateDirectory(directoryPath);
       }
 
-			await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+			await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
 
 			return filePath;
 		}
@@ -49,9 +47,9 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
   {
     try
     {
-      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
       var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
-      var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
       IEnumerable<IVideoStreamInfo> streamInfos = streamManifest.GetVideoStreams();
       if (streamInfos == null)
         throw new InvalidOperationException("No suitable video stream found.");
@@ -72,7 +70,7 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
         Directory.CreateDirectory(directoryPath);
       }
 
-      await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
 
       _ = await downloadSubtitleService.GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
 
@@ -88,9 +86,9 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
   {
     try
     {
-      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
       var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
-      var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
       var streamInfo = streamManifest.GetVideoOnlyStreams().TryGetWithHighestVideoQuality();
 
       if (streamInfo == null)
@@ -103,7 +101,7 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
         Directory.CreateDirectory(directoryPath);
       }
 
-      await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
 
       return filePath;
     }
@@ -117,9 +115,9 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
   {
     try
     {
-      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
       var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
-      var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
 			IEnumerable<IVideoStreamInfo> streamInfos = streamManifest.GetVideoOnlyStreams();
       if (streamInfos == null)
         throw new InvalidOperationException("No suitable video stream found.");
@@ -144,7 +142,7 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
         Directory.CreateDirectory(directoryPath);
       }
 
-      await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
 
       return filePath;
     }
@@ -158,9 +156,9 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
   {
     try
     {
-      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
       var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
-			var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+			var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
       var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
 
       if (streamInfo == null)
@@ -173,7 +171,7 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
         Directory.CreateDirectory(directoryPath);
       }
 
-      await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
 
       return filePath;
     }
@@ -187,14 +185,14 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
 	{
 		try
 		{
-			var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-			var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+			var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+			var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
 			var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
 
 			if (streamInfo == null)
 				throw new InvalidOperationException("No suitable video stream found.");
 
-			return await _youtubeClient.Videos.Streams.GetAsync(streamInfo, cancellationToken);
+			return await youtubeClient.Videos.Streams.GetAsync(streamInfo, cancellationToken);
 		}
 		catch (Exception ex)
 		{
@@ -206,14 +204,14 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
   {
     try
     {
-      var video = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-      var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
       var streamInfo = streamManifest.GetVideoOnlyStreams().TryGetWithHighestVideoQuality();
 
       if (streamInfo == null)
         throw new InvalidOperationException("No suitable video stream found.");
 
-      return await _youtubeClient.Videos.Streams.GetAsync(streamInfo, cancellationToken);
+      return await youtubeClient.Videos.Streams.GetAsync(streamInfo, cancellationToken);
     }
     catch (Exception ex)
     {
@@ -340,6 +338,7 @@ public class DownloadVideoService(IDownloadSubtitleService downloadSubtitleServi
     var fileName = FileHelper.SanitizeFileName(fileNameWithoutExtension);
     var outputPath = Path.GetDirectoryName(downloadedVideo);
     string mergedOutputDes = Path.Combine(outputPath, $"{fileName}.mkv");
+    File.Delete(mergedOutputDes);
     File.Move(tempFileName, mergedOutputDes);
   }
 }

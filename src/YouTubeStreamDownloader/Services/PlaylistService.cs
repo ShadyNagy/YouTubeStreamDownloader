@@ -12,16 +12,14 @@ using YouTubeStreamDownloader.Models;
 
 namespace YouTubeStreamDownloader.Services;
 
-public class PlaylistService : IPlaylistService
+public class PlaylistService(YoutubeClient youtubeClient) : IPlaylistService
 {
-  private readonly YoutubeClient _youtubeClient = new();
-
 	public async Task<List<PlaylistData>> GetAllPlaylistsAsync(string channelUrl, CancellationToken cancellationToken = default)
   {
     try
     {
-      var channel = await _youtubeClient.Channels.GetAsync(ChannelHandle.Parse(channelUrl).Value, cancellationToken);
-      var playlists = await _youtubeClient.Channels.GetUploadsAsync(channel.Id, cancellationToken);
+      var channel = await youtubeClient.Channels.GetAsync(ChannelHandle.Parse(channelUrl).Value, cancellationToken);
+      var playlists = await youtubeClient.Channels.GetUploadsAsync(channel.Id, cancellationToken);
 
       return playlists.Select(p => new PlaylistData
       {
@@ -40,7 +38,7 @@ public class PlaylistService : IPlaylistService
     try
     {
       var playlistId = PlaylistId.Parse(playlistUrl);
-      var videos = await _youtubeClient.Playlists.GetVideosAsync(playlistId, cancellationToken);
+      var videos = await youtubeClient.Playlists.GetVideosAsync(playlistId, cancellationToken);
 
       return videos.Select(v => new VideoData
       {

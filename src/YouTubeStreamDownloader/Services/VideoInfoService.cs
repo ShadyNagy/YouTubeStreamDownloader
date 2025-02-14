@@ -7,15 +7,13 @@ using YouTubeStreamDownloader.Models;
 
 namespace YouTubeStreamDownloader.Services;
 
-public class VideoInfoService : IVideoInfoService
+public class VideoInfoService(YoutubeClient youtubeClient) : IVideoInfoService
 {
-  private readonly YoutubeClient _youtubeClient = new();
-
   public async Task<VideoData> GetVideoInfoAsync(string videoUrl, CancellationToken cancellationToken = default)
   {
     try
     {
-      var videoInfo = await _youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var videoInfo = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
 
       return new VideoData
       {

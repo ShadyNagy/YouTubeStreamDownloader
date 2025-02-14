@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using YoutubeExplode;
 using YouTubeStreamDownloader.Interfaces;
 using YouTubeStreamDownloader.Services;
 using YouTubeStreamDownloader.VideoMerger.Extensions;
@@ -13,6 +14,7 @@ public static class YouTubeStreamDownloaderExtensions
   {
     return services
       .AddYouTubeVideoMergerService()
+      .AddScoped<YoutubeClient>()
       .AddScoped<IDownloadAudioService, DownloadAudioService>()
       .AddScoped<IDownloadSubtitleService, DownloadSubtitleService>()
       .AddScoped<IDownloadVideoService, DownloadVideoService>()
@@ -27,6 +29,7 @@ public static class YouTubeStreamDownloaderExtensions
   {
     return services
       .AddYouTubeVideoMergerSingletonService()
+      .AddSingleton<YoutubeClient>()
       .AddSingleton<IDownloadAudioService, DownloadAudioService>()
       .AddSingleton<IDownloadSubtitleService, DownloadSubtitleService>()
       .AddSingleton<IDownloadVideoService, DownloadVideoService>()

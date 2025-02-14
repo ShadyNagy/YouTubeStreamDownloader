@@ -43,6 +43,35 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
 		}
 	}
 
+  public async Task<string> DownloadVideoAsFileAsync(string videoUrl, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
+
+      if (streamInfo == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
+
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, progress: new Progress<double>(p => progress?.Report(p)), cancellationToken: cancellationToken);
+
+      return filePath;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading video as file: {ex.Message}", ex);
+    }
+  }
+
   public async Task<string> DownloadVideoWithSubtitlesAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
   {
     try
@@ -82,7 +111,46 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
     }
   }
 
-	public async Task<string> DownloadHighestVideoOnlyAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
+  public async Task<string> DownloadVideoWithSubtitlesAsFileAsync(string videoUrl, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      IEnumerable<IVideoStreamInfo> streamInfos = streamManifest.GetVideoStreams();
+      if (streamInfos == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      var streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q1080, streamInfos);
+      if (streamInfo == null)
+      {
+        streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q720, streamInfos);
+        if (streamInfo == null)
+        {
+          streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q480, streamInfos);
+        }
+      }
+      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
+
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, progress: new Progress<double>(p => progress?.Report(p)), cancellationToken: cancellationToken);
+
+      _ = await downloadSubtitleService.GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
+
+      return filePath;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading video as file: {ex.Message}", ex);
+    }
+  }
+
+  public async Task<string> DownloadHighestVideoOnlyAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
   {
     try
     {
@@ -102,6 +170,35 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
       }
 
       await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, cancellationToken: cancellationToken);
+
+      return filePath;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading video as file: {ex.Message}", ex);
+    }
+  }
+
+  public async Task<string> DownloadHighestVideoOnlyAsFileAsync(string videoUrl, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamInfo = streamManifest.GetVideoOnlyStreams().TryGetWithHighestVideoQuality();
+
+      if (streamInfo == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
+
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, progress: new Progress<double>(p => progress?.Report(p)), cancellationToken: cancellationToken);
 
       return filePath;
     }
@@ -152,7 +249,48 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
     }
   }
 
-	public async Task<string> DownloadVideoAsFileAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
+  public async Task<string> DownloadVideoOnlyAsFileAsync(string videoUrl, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      IEnumerable<IVideoStreamInfo> streamInfos = streamManifest.GetVideoOnlyStreams();
+      if (streamInfos == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      var streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q1080, streamInfos);
+      if (streamInfo == null)
+      {
+        streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q720, streamInfos);
+        if (streamInfo == null)
+        {
+          streamInfo = VideoTypeEngine.GetMp4ByVideoType(VideoType.Q480, streamInfos);
+        }
+      }
+
+      if (streamInfo == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
+
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, progress: new Progress<double>(p => progress?.Report(p)), cancellationToken: cancellationToken);
+
+      return filePath;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading video as file: {ex.Message}", ex);
+    }
+  }
+
+  public async Task<string> DownloadVideoAsFileAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
   {
     try
     {
@@ -181,7 +319,36 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
     }
   }
 
-	public async Task<Stream> DownloadVideoAsStreamAsync(string videoUrl, CancellationToken cancellationToken = default)
+  public async Task<string> DownloadVideoAsFileAsync(string videoUrl, string fileName, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamInfo = streamManifest.GetVideoStreams().TryGetWithHighestVideoQuality();
+
+      if (streamInfo == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      string filePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp4");
+      string? directoryPath = Path.GetDirectoryName(filePath);
+      if (!string.IsNullOrEmpty(directoryPath))
+      {
+        Directory.CreateDirectory(directoryPath);
+      }
+
+      await youtubeClient.Videos.Streams.DownloadAsync(streamInfo, filePath, progress: new Progress<double>(p => progress?.Report(p)), cancellationToken: cancellationToken);
+
+      return filePath;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading video as file: {ex.Message}", ex);
+    }
+  }
+
+  public async Task<Stream> DownloadVideoAsStreamAsync(string videoUrl, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -244,6 +411,31 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
     }
   }
 
+  public async Task<string> DownloadAndMergeVideoWithAudioAsFileAsync(string videoUrl, string fileName, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      if (!Directory.Exists(outputPath))
+        Directory.CreateDirectory(outputPath);
+
+      string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
+
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
+
+      return mergedOutput;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
+    }
+  }
+
   public async Task<string> DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
   {
     try
@@ -273,8 +465,63 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
       throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
     }
   }
+  public async Task<string> DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(string videoUrl, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      if (!Directory.Exists(outputPath))
+        Directory.CreateDirectory(outputPath);
+
+      string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+
+      var parts = downloadedVideo.Split(Path.DirectorySeparatorChar);
+      var fileName = parts[^1];
+      string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+      var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
+
+      _ = await downloadSubtitleService.GetAllSubtitlesAsync(videoUrl, fileNameWithoutExtension, outputPath, cancellationToken);
+
+      return mergedOutput;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
+    }
+  }
 
 
+  public async Task<string> DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(string videoUrl, string fileName, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      if (!Directory.Exists(outputPath))
+        Directory.CreateDirectory(outputPath);
+
+      string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+
+      var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
+      var nameGuid = Guid.NewGuid().ToString();
+      string mergedOutput = Path.Combine(outputPath, $"{nameGuid}.mkv");
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(downloadedVideo, downloadedAudio, mergedOutput);
+      RenameAndRemoveOld(downloadedVideo, downloadedAudio, mergedOutput);
+
+      _ = await downloadSubtitleService.GetAllSubtitlesAsync(videoUrl, sanitizedTitle, outputPath, cancellationToken);
+
+      return mergedOutput;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading and merging video: {ex.Message}", ex);
+    }
+  }
   public async Task<string> DownloadAndMergeVideoWithAudioAllSubtitlesAsFileAsync(string videoUrl, string fileName, string outputPath, CancellationToken cancellationToken = default)
   {
     try

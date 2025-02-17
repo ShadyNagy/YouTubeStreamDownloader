@@ -1,16 +1,17 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using YoutubeExplode;
 using YouTubeStreamDownloader.Extensions;
 using YouTubeStreamDownloader.Interfaces;
-using YouTubeStreamDownloader.VideoMerger.Interfaces;
-using YouTubeStreamDownloader.VideoMerger.Services;
+using YouTubeStreamDownloader.Models;
 
 namespace YouTubeStreamDownloader.ConsoleApp;
 
 internal class Program
 {
-  const string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=eld6m3KLEHo";
+  const string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=dWQAUyBi-b4";
   static IDownloadAudioService _downloadAudioService = null!;
   static IPlaylistService _playlistService = null!;
   static IDownloadSubtitleService _downloadSubtitleService = null!;
@@ -20,6 +21,10 @@ internal class Program
   static async Task Main(string[] args)
   {
     SetupDi();
+
+    await TryProgressVideoAsync();
+
+    await TryProgressAudioAsync();
 
     await GetVideoWithSubtitleAsync();
 
@@ -51,6 +56,70 @@ internal class Program
       Console.WriteLine();
     }
 	}
+
+  static async Task TryProgressVideoAsync()
+  {
+    var progress = new Progress<double>(p =>
+    {
+      Console.WriteLine($"Download progress: {p:P2}");
+    });
+
+    using var cts = new CancellationTokenSource();
+    var downloadTask = _downloadVideoService.DownloadVideoWithProgressAndMergeAsync(TEST_VIDEO_URL, VideoType.Q720, progress, cts.Token);
+    var cancelTask = Task.Run(() =>
+    {
+      Console.ReadKey(true);
+      cts.Cancel();
+    });
+
+    await Task.WhenAny(downloadTask, cancelTask);
+
+    if (downloadTask.IsCompletedSuccessfully)
+    {
+      var filePath = await downloadTask;
+      Console.WriteLine($"\nDownload complete!");
+      Console.WriteLine($"Temporary file path: {filePath}");
+    }
+    else
+    {
+      Console.WriteLine("\nDownload was canceled or failed.");
+    }
+
+    Console.WriteLine("Press any key to exit...");
+    Console.ReadKey();
+  }
+
+  static async Task TryProgressAudioAsync()
+  {
+    var progress = new Progress<double>(p =>
+    {
+      Console.WriteLine($"Download progress: {p:P2}");
+    });
+
+    using var cts = new CancellationTokenSource();
+    var downloadTask = _downloadAudioService.DownloadAudioWithProgressAsync(TEST_VIDEO_URL, progress, cts.Token);
+    var cancelTask = Task.Run(() =>
+    {
+      Console.ReadKey(true);
+      cts.Cancel();
+    });
+
+    await Task.WhenAny(downloadTask, cancelTask);
+
+    if (downloadTask.IsCompletedSuccessfully)
+    {
+      var filePath = await downloadTask;
+      Console.WriteLine($"\nDownload complete!");
+      Console.WriteLine($"Temporary file path: {filePath}");
+    }
+    else
+    {
+      Console.WriteLine("\nDownload was canceled or failed.");
+    }
+
+    Console.WriteLine("Press any key to exit...");
+    Console.ReadKey();
+  }
 
   static async Task GetVideoInfoAsync()
   {

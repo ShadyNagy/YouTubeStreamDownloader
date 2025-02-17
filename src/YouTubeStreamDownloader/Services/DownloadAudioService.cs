@@ -6,7 +6,6 @@ using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 using YouTubeStreamDownloader.Helpers;
 using YouTubeStreamDownloader.Interfaces;
-using YouTubeStreamDownloader.Models;
 
 namespace YouTubeStreamDownloader.Services;
 
@@ -34,7 +33,7 @@ public class DownloadAudioService(YoutubeClient youtubeClient) : IDownloadAudioS
       await youtubeClient.Videos.Streams.DownloadAsync(
         streamInfo,
         tempFilePath,
-        new Progress<double>(p => progress?.Report(p * 100)),
+        new Progress<double>(p => progress?.Report(p)),
         cancellationToken
       );
 

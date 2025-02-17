@@ -44,7 +44,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
           videoFilePath,
           new Progress<double>(p =>
           {
-            progress?.Report(p * 100);
+            progress?.Report(p);
           }),
           cancellationToken: cancellationToken);
 

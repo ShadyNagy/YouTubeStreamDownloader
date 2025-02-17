@@ -11,7 +11,7 @@ namespace YouTubeStreamDownloader.ConsoleApp;
 
 internal class Program
 {
-  const string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=dWQAUyBi-b4";
+  const string TEST_VIDEO_URL = "https://www.youtube.com/watch?v=eld6m3KLEHo";
   static IDownloadAudioService _downloadAudioService = null!;
   static IPlaylistService _playlistService = null!;
   static IDownloadSubtitleService _downloadSubtitleService = null!;

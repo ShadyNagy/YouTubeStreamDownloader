@@ -12,48 +12,41 @@ namespace YouTubeStreamDownloader.Services;
 
 public class DownloadAudioService(YoutubeClient youtubeClient) : IDownloadAudioService
 {
-    public async Task<Stream> DownloadAudioWithProgressAsync(
-      string videoUrl,
-      IProgress<DownloadProgress> progress,
-      CancellationToken cancellationToken = default)
+  public async Task<string> DownloadAudioWithProgressAsync(
+    string videoUrl,
+    IProgress<double>? progress,
+    CancellationToken cancellationToken = default)
+  {
+    try
     {
-      try
-      {
-        if (!Uri.IsWellFormedUriString(videoUrl, UriKind.Absolute))
-          throw new ArgumentException("Invalid YouTube URL.");
+      if (!Uri.IsWellFormedUriString(videoUrl, UriKind.Absolute))
+        throw new ArgumentException("Invalid YouTube URL.");
 
-        var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
-        var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamInfo = streamManifest.GetAudioOnlyStreams().TryGetWithHighestBitrate();
 
-        var streamInfo = streamManifest.GetAudioOnlyStreams().TryGetWithHighestBitrate();
-        if (streamInfo == null)
-          throw new InvalidOperationException("No suitable audio stream found.");
+      if (streamInfo == null)
+        throw new InvalidOperationException("No suitable audio stream found.");
 
-        var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.tmp");
+      string tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.mp3");
 
-        await youtubeClient.Videos.Streams.DownloadAsync(
-          streamInfo,
-          tempFilePath,
-          new Progress<double>(p =>
-          {
-            progress.Report(new DownloadProgress(
-              Percentage: (int)(p * 100),
-              BytesReceived: (long)(streamInfo.Size.Bytes * p),
-              TotalBytes: streamInfo.Size.Bytes
-            ));
-          }),
-          cancellationToken
-        );
+      await youtubeClient.Videos.Streams.DownloadAsync(
+        streamInfo,
+        tempFilePath,
+        new Progress<double>(p => progress?.Report(p * 100)),
+        cancellationToken
+      );
 
-        return new AutoDeleteFileStream(tempFilePath);
-      }
-      catch (Exception ex)
-      {
-        throw new InvalidOperationException($"Error downloading audio with progress: {ex.Message}", ex);
-      }
+      return tempFilePath;
     }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading audio with progress: {ex.Message}", ex);
+    }
+  }
 
-    public async Task<string> DownloadAudioAsFileAsync(string videoUrl, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
+  public async Task<string> DownloadAudioAsFileAsync(string videoUrl, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default)
   {
     try
     {

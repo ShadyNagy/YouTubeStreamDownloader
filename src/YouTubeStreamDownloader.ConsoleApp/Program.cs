@@ -70,7 +70,7 @@ internal class Program
     {
       Console.ReadKey(true);
       cts.Cancel();
-    });
+    }, cts.Token);
 
     await Task.WhenAny(downloadTask, cancelTask);
 
@@ -102,7 +102,7 @@ internal class Program
     {
       Console.ReadKey(true);
       cts.Cancel();
-    });
+    }, cts.Token);
 
     await Task.WhenAny(downloadTask, cancelTask);
 

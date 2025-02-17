@@ -2,11 +2,13 @@
 using System.Threading.Tasks;
 using System.Threading;
 using System;
+using YouTubeStreamDownloader.Models;
 
 namespace YouTubeStreamDownloader.Interfaces;
 
 public interface IDownloadVideoService
 {
+  Task<Stream> DownloadVideoWithProgressAndMergeAsync(string videoUrl, VideoType quality, IProgress<DownloadProgress> progress, CancellationToken cancellationToken = default);
   Task<string> DownloadVideoAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default);
   Task<string> DownloadVideoAsFileAsync(string videoUrl, string outputPath, IProgress<double>? progress, CancellationToken cancellationToken = default);
   Task<string> DownloadVideoWithSubtitlesAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default);

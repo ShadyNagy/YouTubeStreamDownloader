@@ -14,6 +14,58 @@ namespace YouTubeStreamDownloader.Services;
 
 public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitleService downloadSubtitleService, IVideoMerger videoMerger, IDownloadAudioService downloadAudioService) : IDownloadVideoService
 {
+  public async Task<Stream> DownloadVideoWithProgressAndMergeAsync(
+    string videoUrl,
+    VideoType quality,
+    IProgress<DownloadProgress> progress,
+    CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamInfos = streamManifest.GetVideoStreams();
+      var streamInfo = VideoTypeEngine.GetMp4ByVideoType(quality, streamInfos);
+      if (streamInfo == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.tmp");
+
+      string videoFilePath = $"{tempFilePath}_video.mp4";
+      string audioFilePath = $"{tempFilePath}_audio.mp3";
+      string mergedOutput = $"{sanitizedTitle}.mkv";
+
+      await youtubeClient.Videos.Streams.DownloadAsync(
+          streamInfo,
+          videoFilePath,
+          new Progress<double>(p =>
+          {
+            progress.Report(new DownloadProgress(
+              Percentage: (int)(p * 100),
+              BytesReceived: (long)(streamInfo.Size.Bytes * p),
+              TotalBytes: streamInfo.Size.Bytes
+            ));
+          }),
+          cancellationToken: cancellationToken);
+
+      if (!File.Exists(audioFilePath))
+      {
+        audioFilePath = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, audioFilePath, cancellationToken);
+      }
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);
+
+      File.Delete(audioFilePath);
+      File.Delete(videoFilePath);
+      return new AutoDeleteFileStream(mergedOutput);
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading and merging video with progress: {ex.Message}", ex);
+    }
+  }
+
   public async Task<string> DownloadVideoAsFileAsync(string videoUrl, string outputPath, CancellationToken cancellationToken = default)
 	{
 		try
@@ -394,7 +446,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         Directory.CreateDirectory(outputPath);
 
       string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
-      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, outputPath, cancellationToken);
       var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
 
       var nameGuid = Guid.NewGuid().ToString();
@@ -419,7 +471,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         Directory.CreateDirectory(outputPath);
 
       string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
-      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
       var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
 
       var nameGuid = Guid.NewGuid().ToString();
@@ -444,7 +496,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         Directory.CreateDirectory(outputPath);
 
       string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
-      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, outputPath, cancellationToken);
 
       var parts = downloadedVideo.Split(Path.DirectorySeparatorChar);
       var fileName = parts[^1];
@@ -473,7 +525,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         Directory.CreateDirectory(outputPath);
 
       string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
-      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
 
       var parts = downloadedVideo.Split(Path.DirectorySeparatorChar);
       var fileName = parts[^1];
@@ -504,7 +556,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         Directory.CreateDirectory(outputPath);
 
       string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
-      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, outputPath, progress, cancellationToken);
 
       var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
       var nameGuid = Guid.NewGuid().ToString();
@@ -530,7 +582,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         Directory.CreateDirectory(outputPath);
 
       string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
-      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, outputPath, cancellationToken);
 
       var sanitizedTitle = FileHelper.SanitizeFileName(fileName);
       var nameGuid = Guid.NewGuid().ToString();
@@ -559,7 +611,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         Directory.CreateDirectory(outputPath);
 
       string downloadedVideo = await DownloadVideoOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
-      string downloadedAudio = await downloadAudioService.DownloadAudioOnlyAsFileAsync(videoUrl, outputPath, cancellationToken);
+      string downloadedAudio = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, outputPath, cancellationToken);
 
       var parts = downloadedVideo.Split(Path.PathSeparator);
       var sanitizedTitle = FileHelper.SanitizeFileName(parts[^1]);

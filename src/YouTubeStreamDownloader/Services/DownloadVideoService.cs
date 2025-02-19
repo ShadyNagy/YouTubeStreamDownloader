@@ -16,6 +16,58 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
 {
   public async Task<string> DownloadVideoWithProgressAndMergeAsync(
     string videoUrl,
+    string outputPath,
+    VideoType quality,
+    IProgress<double>? progress,
+    CancellationToken cancellationToken = default)
+  {
+    try
+    {
+      if (!Uri.IsWellFormedUriString(videoUrl, UriKind.Absolute))
+        throw new ArgumentException("Invalid YouTube URL.");
+
+      var video = await youtubeClient.Videos.GetAsync(videoUrl, cancellationToken);
+      var sanitizedTitle = FileHelper.SanitizeFileName(video.Title);
+      var streamManifest = await youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken);
+      var streamInfos = streamManifest.GetVideoStreams();
+      var streamInfo = VideoTypeEngine.GetMp4ByVideoType(quality, streamInfos);
+
+      if (streamInfo == null)
+        throw new InvalidOperationException("No suitable video stream found.");
+
+      string videoFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_video.mp4");
+      string audioFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_audio.mp3");
+      string mergedOutput = Path.Combine(outputPath, $"{sanitizedTitle}.mkv");
+
+      await youtubeClient.Videos.Streams.DownloadAsync(
+        streamInfo,
+        videoFilePath,
+        new Progress<double>(p =>
+        {
+          progress?.Report(p);
+        }),
+        cancellationToken: cancellationToken);
+
+      if (!File.Exists(audioFilePath))
+      {
+        audioFilePath = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, audioFilePath, cancellationToken);
+      }
+
+      await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);
+
+      File.Delete(videoFilePath);
+      File.Delete(audioFilePath);
+
+      return mergedOutput;
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Error downloading and merging video with progress: {ex.Message}", ex);
+    }
+  }
+
+  public async Task<string> DownloadVideoWithProgressAndMergeAsync(
+    string videoUrl,
     VideoType quality,
     IProgress<double>? progress,
     CancellationToken cancellationToken = default)
@@ -50,7 +102,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
 
       if (!File.Exists(audioFilePath))
       {
-        audioFilePath = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, tempDir, cancellationToken);
+        audioFilePath = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, audioFilePath, cancellationToken);
       }
 
       await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);

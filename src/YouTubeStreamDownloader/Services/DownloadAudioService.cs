@@ -32,7 +32,7 @@ public class DownloadAudioService(YoutubeClient youtubeClient) : IDownloadAudioS
 
       Directory.CreateDirectory(outputPath);
 
-      string tempFilePath = Path.Combine(outputPath, $"{fileName}.mp3");
+      string tempFilePath = Path.Combine(outputPath, fileName);
 
       await youtubeClient.Videos.Streams.DownloadAsync(
         streamInfo,

@@ -38,22 +38,30 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
       Directory.CreateDirectory(outputPath);
 
       string videoFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_video.mp4");
-      string audioFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_audio.mp3");
-      string mergedOutput = Path.Combine(outputPath, $"{fileName}.mkv");
+      string audioFileName = $"{Guid.NewGuid()}_audio.mp3";
+      string mergedOutput = Path.Combine(outputPath, fileName);
 
       await youtubeClient.Videos.Streams.DownloadAsync(
         streamInfo,
         videoFilePath,
         new Progress<double>(p =>
         {
-          progress?.Report(p);
+          if (p < 1.00)
+          {
+            progress?.Report(p);
+          }
         }),
         cancellationToken: cancellationToken);
 
-      if (!File.Exists(audioFilePath))
-      {
-        audioFilePath = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, audioFilePath, cancellationToken);
-      }
+      var audioFilePath = await downloadAudioService.DownloadAudioWithProgressAsync(
+        videoUrl,
+        audioFileName,
+        outputPath,
+        new Progress<double>(p =>
+        {
+          progress?.Report(p);
+        }),
+        cancellationToken);
 
       await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);
 
@@ -91,7 +99,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
       Directory.CreateDirectory(outputPath);
 
       string videoFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_video.mp4");
-      string audioFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_audio.mp3");
+      string audioFileName = $"{Guid.NewGuid()}_audio.mp3";
       string mergedOutput = Path.Combine(outputPath, $"{sanitizedTitle}.mkv");
 
       await youtubeClient.Videos.Streams.DownloadAsync(
@@ -99,14 +107,22 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         videoFilePath,
         new Progress<double>(p =>
         {
-          progress?.Report(p);
+          if (p < 1.00)
+          {
+            progress?.Report(p);
+          }
         }),
         cancellationToken: cancellationToken);
 
-      if (!File.Exists(audioFilePath))
-      {
-        audioFilePath = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, audioFilePath, cancellationToken);
-      }
+      var audioFilePath = await downloadAudioService.DownloadAudioWithProgressAsync(
+        videoUrl,
+        audioFileName,
+        outputPath, 
+        new Progress<double>(p =>
+        {
+          progress?.Report(p);
+        }), 
+        cancellationToken);
 
       await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);
 
@@ -143,7 +159,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
 
       string tempDir = Path.GetTempPath();
       string videoFilePath = Path.Combine(tempDir, $"{Guid.NewGuid()}_video.mp4");
-      string audioFilePath = Path.Combine(tempDir, $"{Guid.NewGuid()}_audio.mp3");
+      string audioFileName = $"{Guid.NewGuid()}_audio.mp3";
       string mergedOutput = Path.Combine(tempDir, $"{sanitizedTitle}.mkv");
 
       await youtubeClient.Videos.Streams.DownloadAsync(
@@ -151,14 +167,22 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
           videoFilePath,
           new Progress<double>(p =>
           {
-            progress?.Report(p);
+            if (p < 1.00)
+            {
+              progress?.Report(p);
+            }
           }),
           cancellationToken: cancellationToken);
 
-      if (!File.Exists(audioFilePath))
-      {
-        audioFilePath = await downloadAudioService.DownloadAudioAsFileAsync(videoUrl, audioFilePath, cancellationToken);
-      }
+      var audioFilePath = await downloadAudioService.DownloadAudioWithProgressAsync(
+        videoUrl,
+        audioFileName,
+        tempDir,
+        new Progress<double>(p =>
+        {
+          progress?.Report(p);
+        }),
+        cancellationToken);
 
       await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);
 

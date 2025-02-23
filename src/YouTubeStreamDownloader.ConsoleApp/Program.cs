@@ -23,6 +23,7 @@ internal class Program
     SetupDi();
 
     await TryProgressVideoAsync();
+    return;
 
     await TryProgressAudioAsync();
 
@@ -65,7 +66,7 @@ internal class Program
     });
 
     using var cts = new CancellationTokenSource();
-    var downloadTask = _downloadVideoService.DownloadVideoWithProgressAndMergeAsync(TEST_VIDEO_URL, VideoType.Q720, progress, cts.Token);
+    var downloadTask = _downloadVideoService.DownloadVideoWithProgressAndMergeAsync(TEST_VIDEO_URL, "final.mkv", "c:\\temp", VideoType.Q720, progress, cts.Token);
     var cancelTask = Task.Run(() =>
     {
       Console.ReadKey(true);

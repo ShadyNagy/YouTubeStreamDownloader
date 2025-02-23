@@ -59,7 +59,10 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         outputPath,
         new Progress<double>(p =>
         {
-          progress?.Report(p);
+          if (p < 1.00)
+          {
+            progress?.Report(p);
+          }
         }),
         cancellationToken);
 
@@ -67,6 +70,8 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
 
       File.Delete(videoFilePath);
       File.Delete(audioFilePath);
+
+      progress?.Report(1.00);
 
       return mergedOutput;
     }
@@ -120,7 +125,10 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         outputPath, 
         new Progress<double>(p =>
         {
-          progress?.Report(p);
+          if (p < 1.00)
+          {
+            progress?.Report(p);
+          }
         }), 
         cancellationToken);
 
@@ -128,6 +136,8 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
 
       File.Delete(videoFilePath);
       File.Delete(audioFilePath);
+
+      progress?.Report(1.00);
 
       return mergedOutput;
     }
@@ -180,7 +190,10 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         tempDir,
         new Progress<double>(p =>
         {
-          progress?.Report(p);
+          if (p < 1.00)
+          {
+            progress?.Report(p);
+          }
         }),
         cancellationToken);
 
@@ -188,6 +201,8 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
 
       File.Delete(videoFilePath);
       File.Delete(audioFilePath);
+
+      progress?.Report(1.00);
 
       return mergedOutput;
     }

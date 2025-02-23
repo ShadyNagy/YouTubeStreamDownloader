@@ -35,6 +35,8 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
       if (streamInfo == null)
         throw new InvalidOperationException("No suitable video stream found.");
 
+      Directory.CreateDirectory(outputPath);
+
       string videoFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_video.mp4");
       string audioFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_audio.mp3");
       string mergedOutput = Path.Combine(outputPath, $"{fileName}.mkv");
@@ -85,6 +87,8 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
 
       if (streamInfo == null)
         throw new InvalidOperationException("No suitable video stream found.");
+
+      Directory.CreateDirectory(outputPath);
 
       string videoFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_video.mp4");
       string audioFilePath = Path.Combine(outputPath, $"{Guid.NewGuid()}_audio.mp3");

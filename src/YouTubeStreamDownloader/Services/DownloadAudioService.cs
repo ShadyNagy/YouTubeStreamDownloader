@@ -30,6 +30,8 @@ public class DownloadAudioService(YoutubeClient youtubeClient) : IDownloadAudioS
       if (streamInfo == null)
         throw new InvalidOperationException("No suitable audio stream found.");
 
+      Directory.CreateDirectory(outputPath);
+
       string tempFilePath = Path.Combine(outputPath, $"{fileName}.mp3");
 
       await youtubeClient.Videos.Streams.DownloadAsync(
@@ -64,6 +66,8 @@ public class DownloadAudioService(YoutubeClient youtubeClient) : IDownloadAudioS
 
       if (streamInfo == null)
         throw new InvalidOperationException("No suitable audio stream found.");
+
+      Directory.CreateDirectory(outputPath);
 
       string tempFilePath = Path.Combine(outputPath, $"{sanitizedTitle}.mp3");
 

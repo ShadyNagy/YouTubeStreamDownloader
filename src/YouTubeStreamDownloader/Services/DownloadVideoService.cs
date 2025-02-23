@@ -66,6 +66,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         }),
         cancellationToken);
 
+      Thread.Sleep(2000);
       await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);
 
       File.Delete(videoFilePath);
@@ -132,6 +133,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         }), 
         cancellationToken);
 
+      Thread.Sleep(2000);
       await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);
 
       File.Delete(videoFilePath);
@@ -197,6 +199,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
         }),
         cancellationToken);
 
+      Thread.Sleep(2000);
       await videoMerger.MergeAudioAndVideoWithoutEncodeAsync(videoFilePath, audioFilePath, mergedOutput);
 
       File.Delete(videoFilePath);

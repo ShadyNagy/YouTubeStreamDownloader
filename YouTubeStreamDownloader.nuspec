@@ -39,6 +39,7 @@
         <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="8.0.0" />
         <dependency id="YoutubeExplode" version="6.5.3" />
         <dependency id="YouTubeStreamDownloader.VideoMerger" version="1.1.0" />
+        <dependency id="SambaFileManager" Version="1.1.0" />
       </group>
     </dependencies>
 

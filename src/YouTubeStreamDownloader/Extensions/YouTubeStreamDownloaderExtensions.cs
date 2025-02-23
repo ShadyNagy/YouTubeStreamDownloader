@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using SambaFileManager.Extensions;
+using SambaFileManager.Models;
 using YoutubeExplode;
 using YouTubeStreamDownloader.Interfaces;
 using YouTubeStreamDownloader.Services;
@@ -13,13 +15,20 @@ public static class YouTubeStreamDownloaderExtensions
   public static IServiceCollection AddYouTubeStreamDownloaderService(this IServiceCollection services)
   {
     return services
-      .AddYouTubeVideoMergerService()
       .AddScoped<YoutubeClient>()
       .AddScoped<IDownloadAudioService, DownloadAudioService>()
       .AddScoped<IDownloadSubtitleService, DownloadSubtitleService>()
       .AddScoped<IDownloadVideoService, DownloadVideoService>()
       .AddScoped<IPlaylistService, PlaylistService>()
       .AddScoped<IVideoInfoService, VideoInfoService>();
+  }
+
+  public static IServiceCollection AddYouTubeStreamDownloaderService(this IServiceCollection services, SambaSettings sambaSettings)
+  {
+    return services
+      .AddYouTubeStreamDownloaderService()
+      .AddSambaFileManagerServices(sambaSettings);
+
   }
 
   /// <summary>
@@ -35,5 +44,12 @@ public static class YouTubeStreamDownloaderExtensions
       .AddSingleton<IDownloadVideoService, DownloadVideoService>()
       .AddSingleton<IPlaylistService, PlaylistService>()
       .AddSingleton<IVideoInfoService, VideoInfoService>();
+  }
+
+  public static IServiceCollection AddYouTubeStreamDownloaderSingletonService(this IServiceCollection services, SambaSettings sambaSettings)
+  {
+    return services
+      .AddYouTubeStreamDownloaderSingletonService()
+      .AddSambaFileManagerSingletonServices(sambaSettings);
   }
 }

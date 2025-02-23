@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using SambaFileManager.Interfaces;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 using YouTubeStreamDownloader.Helpers;
@@ -12,7 +13,7 @@ using YouTubeStreamDownloader.VideoMerger.Interfaces;
 
 namespace YouTubeStreamDownloader.Services;
 
-public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitleService downloadSubtitleService, IVideoMerger videoMerger, IDownloadAudioService downloadAudioService) : IDownloadVideoService
+public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitleService downloadSubtitleService, IVideoMerger videoMerger, IDownloadAudioService downloadAudioService, ISambaFileService sambaFileService) : IDownloadVideoService
 {
   public async Task<string> DownloadVideoWithProgressAndMergeAsync(
     string videoUrl,

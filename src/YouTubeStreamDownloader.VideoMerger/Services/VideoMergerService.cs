@@ -17,7 +17,7 @@ public class VideoMergerService : IVideoMerger
 		if (!File.Exists(inputVideoPath) || !File.Exists(inputAudioPath))
       throw new FileNotFoundException("Input file not found.");
 
-    await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+    await DownloadFFmpegAsync();
 
     // Extract video stream (without audio) from the input MP4
     var videoStream = (await FFmpeg.GetMediaInfo(inputVideoPath))
@@ -46,7 +46,7 @@ public class VideoMergerService : IVideoMerger
     if (!File.Exists(inputVideoPath) || !File.Exists(inputAudioPath))
       throw new FileNotFoundException("Input file not found.");
 
-    await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+    await DownloadFFmpegAsync();
 
     try
     {
@@ -66,9 +66,7 @@ public class VideoMergerService : IVideoMerger
         .AddStream(videoStream)
         .AddStream(audioStream)
         .SetOutput(outputFilePath)
-        .SetOverwriteOutput(true)
-        .AddParameter("-c:v copy")
-        .AddParameter("-c:a copy");
+        .SetOverwriteOutput(true);
 
       IConversionResult result = await conversion.Start();
 
@@ -79,5 +77,18 @@ public class VideoMergerService : IVideoMerger
     {
       throw new InvalidOperationException("Merge failed", ex);
     }
+  }
+
+  private async Task DownloadFFmpegAsync()
+  {
+    // Specify where FFmpeg will be downloaded/unpacked
+    string ffmpegPath = Environment.CurrentDirectory;
+    // Or pick any folder you want, e.g.: C:\\Tools\\FFmpeg
+
+    // (Optional) Tell Xabe.FFmpeg where to look for the executables
+    FFmpeg.SetExecutablesPath(Environment.CurrentDirectory);
+
+    // Download the latest official build of ffmpeg into the specified folder
+    await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official, ffmpegPath);
   }
 }

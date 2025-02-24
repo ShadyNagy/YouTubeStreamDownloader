@@ -42,31 +42,42 @@ public class VideoMergerService : IVideoMerger
 
   public async Task MergeAudioAndVideoWithoutEncodeAsync(string inputVideoPath, string inputAudioPath, string outputFilePath)
   {
-
     // Ensure input files exist
     if (!File.Exists(inputVideoPath) || !File.Exists(inputAudioPath))
       throw new FileNotFoundException("Input file not found.");
 
     await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
 
-    // Extract video stream (without audio) from the input MP4
-    var videoStream = (await FFmpeg.GetMediaInfo(inputVideoPath))
-      .VideoStreams.First().CopyStream();
+    try
+    {
+      // Extract video stream (without audio) from the input MP4
+      var videoStream = (await FFmpeg.GetMediaInfo(inputVideoPath))
+        .VideoStreams.First().CopyStream();
 
-    // Extract audio stream from the input MP3
-    var audioStream = (await FFmpeg.GetMediaInfo(inputAudioPath))
-      .AudioStreams.First().CopyStream();
+      // Extract audio stream from the input MP3
+      var audioStream = (await FFmpeg.GetMediaInfo(inputAudioPath))
+        .AudioStreams.First().CopyStream();
 
-    if (videoStream == null || audioStream == null)
-      throw new InvalidOperationException("Invalid input streams.");
+      if (videoStream == null || audioStream == null)
+        throw new InvalidOperationException("Invalid input streams.");
 
-    // Merge the streams into a new MP4
-    var conversion = FFmpeg.Conversions.New()
-      .AddStream(videoStream)
-      .AddStream(audioStream)
-      .SetOutput(outputFilePath)
-      .SetOverwriteOutput(true);
+      // Merge the streams into a new MP4
+      var conversion = FFmpeg.Conversions.New()
+        .AddStream(videoStream)
+        .AddStream(audioStream)
+        .SetOutput(outputFilePath)
+        .SetOverwriteOutput(true)
+        .AddParameter("-c:v copy")
+        .AddParameter("-c:a copy");
 
-    await conversion.Start();
+      IConversionResult result = await conversion.Start();
+
+      if (!File.Exists(outputFilePath))
+        throw new InvalidOperationException("Output file was not created");
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException("Merge failed", ex);
+    }
   }
 }

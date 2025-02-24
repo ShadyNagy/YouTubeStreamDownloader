@@ -78,6 +78,7 @@ public class DownloadVideoService(YoutubeClient youtubeClient, IDownloadSubtitle
     }
     catch (Exception ex)
     {
+      progress?.Report(0.99);
       throw new InvalidOperationException($"Error downloading and merging video with progress: {ex.Message}", ex);
     }
   }
